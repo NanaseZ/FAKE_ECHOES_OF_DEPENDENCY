@@ -199,7 +199,7 @@
   function getUserId() {
     let uid = localStorage.getItem("global_garden_user_id");
     if (!uid) {
-      uid = "user_" + Date.now() + "_" + Math.random().toString(36).substring(2, 10) + "_" + crypto.randomUUID?.() || Math.random();
+      uid = "user_" + Date.now() + "_" + Math.random().toString(36).substring(2, 10);
       localStorage.setItem("global_garden_user_id", uid);
     }
     return uid;
