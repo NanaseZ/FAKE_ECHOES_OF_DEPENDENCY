@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌍 GLOBAL IDEA GARDEN · shared whispers</title>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      font-family: 'Arial', 'Helvetica Neue', sans-serif;
+      color: #fff;
+      padding: 2rem 1.5rem;
+    }
+    .container { max-width: 1280px; margin: 0 auto; }
+    .hero { margin-bottom: 2.5rem; border-bottom: 1px solid #2a2a2a; padding-bottom: 1.5rem; }
+    h1 { font-size: 2rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 0.5rem; }
+    .sub { font-size: 1rem; color: #ccc; margin-bottom: 1rem; }
+    .post-form {
+      background: #121212;
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      margin-bottom: 2.5rem;
+      border: 1px solid #2c2c2c;
+    }
+    .form-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; gap: 0.5rem; }
+    .form-title::before { content: "💡"; font-size: 1.2rem; }
+    textarea {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 1rem;
+      padding: 1rem;
+      font-family: Arial, sans-serif;
+      font-size: 1rem;
+      color: #fff;
+      resize: vertical;
+      margin-bottom: 1rem;
+    }
+    textarea:focus { outline: none; border-color: #5a5a5a; background: #1e1e1e; }
+    textarea::placeholder { color: #6b6b6b; }
+    .button-group { display: flex; gap: 1rem; flex-wrap: wrap; }
+    button {
+      background: #2c2c2c;
+      border: 1px solid #3a3a3a;
+      font-family: Arial, sans-serif;
+      font-weight: 500;
+      font-size: 0.9rem;
+      padding: 0.7rem 1.6rem;
+      border-radius: 3rem;
+      color: #fff;
+      cursor: pointer;
+    }
+    button.primary { background: #fff; color: #000; border: none; font-weight: 600; }
+    button.primary:hover { background: #e6e6e6; transform: scale(0.98); }
+    button.warning { background: #2c1a1a; border-color: #6a2e2e; }
+    button.warning:hover { background: #4a2a2a; }
+    .posts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+    .idea-card {
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 1.25rem;
+      padding: 1.25rem;
+      transition: 0.08s linear;
+    }
+    .idea-card:hover { border-color: #3e3e3e; background: #141414; }
+    .idea-text { font-size: 1rem; line-height: 1.5; white-space: pre-wrap; margin-bottom: 0.75rem; }
+    .idea-meta {
+      font-size: 0.7rem;
+      color: #777;
+      border-top: 1px dashed #262626;
+      padding-top: 0.65rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .timestamp { font-family: monospace; }
+    .delete-btn {
+      background: none;
+      border: 1px solid #4a2a2a;
+      color: #ff8888;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.65rem;
+      border-radius: 2rem;
+      cursor: pointer;
+    }
+    .delete-btn:hover { background: #4a1a1a; border-color: #aa5555; }
+    .empty-message {
+      text-align: center;
+      padding: 3rem;
+      color: #666;
+      font-style: italic;
+      background: #0a0a0a;
+      border-radius: 2rem;
+      grid-column: 1 / -1;
+      border: 1px dashed #2a2a2a;
+    }
+    footer { margin-top: 3rem; text-align: center; font-size: 0.75rem; color: #444; border-top: 1px solid #1e1e1e; padding-top: 2rem; }
+    .post-count { background: #1e1e1e; border-radius: 3rem; padding: 0.2rem 0.8rem; font-size: 0.8rem; display: inline-block; }
+    .warning-banner { background: #2a1a1a; border-left: 4px solid #ff8888; padding: 0.75rem; margin-bottom: 1rem; border-radius: 0.75rem; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="hero">
+    <h1>🌍 GLOBAL IDEA GARDEN</h1>
+    <p class="sub">everyone sees the same whispers · post anonymously · delete only your own</p>
+    <div class="post-count" id="postCounter">loading ideas...</div>
+  </div>
+
+  <div id="firebaseWarning" class="warning-banner" style="display: none;">
+    ⚠️ Firebase not configured. Follow the setup instructions in the code comments (or below) to enable global sharing.
+  </div>
+
+  <div class="post-form">
+    <div class="form-title">plant a shared idea</div>
+    <textarea id="ideaInput" rows="3" placeholder="what's on your mind? the world will see it..."></textarea>
+    <div class="button-group">
+      <button id="submitBtn" class="primary">🌱 plant idea (global)</button>
+      <button id="deleteMyAllBtn" class="warning">🗑️ delete all my ideas</button>
+    </div>
+    <div class="info-text" style="margin-top: 0.6rem; font-size:0.8rem; color:#999;">
+      🔗 every post is saved in the cloud. everyone sees the same board. you can only delete posts you wrote.
+    </div>
+  </div>
+
+  <div id="postsContainer" class="posts-grid">
+    <div class="empty-message">✨ loading ideas from the cloud...</div>
+  </div>
+  <footer>🌐 true shared board · each visitor sees and adds to the same collection</footer>
+</div>
+
+<script>
+  // ------------------------------
+  // 🔧 FIREBASE SETUP (ONE TIME)
+  // ------------------------------
+  // 1. Go to https://console.firebase.google.com/
+  // 2. Create a new project (any name, disable Google Analytics)
+  // 3. In "Build" -> "Firestore Database" -> "Create database"
+  //    Start in test mode (important! you can later add security rules)
+  // 4. Choose a region (e.g. us-central1 or europe-west1)
+  // 5. In project settings (gear icon) -> "General" -> "Your apps" -> add a web app (</>)
+  // 6. Register the app, copy the firebaseConfig object (apiKey, authDomain, etc.)
+  // 7. PASTE the config object below (replace empty strings)
+  // 8. Also update Firestore rules to allow read/write (temporary for testing):
+  //    In Firestore Database -> Rules, paste:
+  //    rules_version = '2';
+  //    service cloud.firestore {
+  //      match /databases/{database}/documents {
+  //        match /posts/{document} {
+  //          allow read, write: if true;   // test mode – later restrict if needed
+  //        }
+  //      }
+  //    }
+  //    Then publish.
+  // -------------------------------------------------
+
+  const firebaseConfig = {
+    apiKey: "",            // 👈 paste your apiKey here
+    authDomain: "",        // 👈 e.g. "your-project.firebaseapp.com"
+    projectId: "",         // 👈 your project ID
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+  };
+
+  // ------------------------------
+  // Firebase initialization
+  // ------------------------------
+  let db = null;
+  let isFirebaseReady = false;
+  let currentUserId = "";
+
+  try {
+    if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      isFirebaseReady = true;
+      document.getElementById("firebaseWarning").style.display = "none";
+    } else {
+      document.getElementById("firebaseWarning").style.display = "block";
+      console.warn("Firebase config missing");
+    }
+  } catch(e) {
+    console.error(e);
+    document.getElementById("firebaseWarning").style.display = "block";
+  }
+
+  // get or create persistent anonymous user ID (stored in localStorage)
+  function getUserId() {
+    let uid = localStorage.getItem("global_garden_user_id");
+    if (!uid) {
+      uid = "user_" + Date.now() + "_" + Math.random().toString(36).substring(2, 10) + "_" + crypto.randomUUID?.() || Math.random();
+      localStorage.setItem("global_garden_user_id", uid);
+    }
+    return uid;
+  }
+  currentUserId = getUserId();
+
+  // DOM elements
+  const postsContainer = document.getElementById("postsContainer");
+  const ideaInput = document.getElementById("ideaInput");
+  const submitBtn = document.getElementById("submitBtn");
+  const deleteMyAllBtn = document.getElementById("deleteMyAllBtn");
+  const postCounterSpan = document.getElementById("postCounter");
+
+  // Helper: render posts from Firestore snapshot
+  function renderPosts(snapshot) {
+    if (!postsContainer) return;
+    const posts = [];
+    snapshot.forEach(doc => {
+      posts.push({ id: doc.id, ...doc.data() });
+    });
+    // sort by timestamp descending (newest first)
+    posts.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    if (posts.length === 0) {
+      postsContainer.innerHTML = `<div class="empty-message">🌱 no ideas yet. be the first to plant one!</div>`;
+      postCounterSpan.innerText = "0 ideas shared";
+      return;
+    }
+
+    postCounterSpan.innerText = `${posts.length} idea${posts.length === 1 ? "" : "s"} shared`;
+
+    postsContainer.innerHTML = "";
+    posts.forEach((post, idx) => {
+      const card = document.createElement("div");
+      card.className = "idea-card";
+      
+      const textDiv = document.createElement("div");
+      textDiv.className = "idea-text";
+      textDiv.textContent = post.text || "🕳️ empty thought";
+      
+      const metaDiv = document.createElement("div");
+      metaDiv.className = "idea-meta";
+      
+      const date = post.timestamp ? new Date(post.timestamp) : new Date();
+      const dateStr = isNaN(date.getTime()) ? "recent" : date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const timestampSpan = document.createElement("span");
+      timestampSpan.className = "timestamp";
+      timestampSpan.textContent = `📅 ${dateStr}`;
+      
+      const indexSpan = document.createElement("span");
+      indexSpan.style.fontSize = "0.7rem";
+      indexSpan.style.color = "#5a5a5a";
+      indexSpan.textContent = `#${idx+1}`;
+      
+      metaDiv.appendChild(timestampSpan);
+      metaDiv.appendChild(indexSpan);
+      
+      // delete button only for the author
+      if (post.userId === currentUserId) {
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "✕ delete";
+        deleteBtn.className = "delete-btn";
+        deleteBtn.onclick = async (e) => {
+          e.stopPropagation();
+          if (confirm("delete your own idea? (cannot be undone)")) {
+            try {
+              await db.collection("posts").doc(post.id).delete();
+            } catch(err) { console.error(err); alert("error deleting"); }
+          }
+        };
+        metaDiv.appendChild(deleteBtn);
+      } else {
+        const lockSpan = document.createElement("span");
+        lockSpan.textContent = "🔒";
+        lockSpan.style.fontSize = "0.65rem";
+        lockSpan.style.opacity = "0.5";
+        lockSpan.title = "posted by someone else – only the author can delete";
+        metaDiv.appendChild(lockSpan);
+      }
+      
+      card.appendChild(textDiv);
+      card.appendChild(metaDiv);
+      postsContainer.appendChild(card);
+    });
+  }
+
+  // listen to realtime updates from Firestore (if configured)
+  let unsubscribe = null;
+  if (isFirebaseReady && db) {
+    unsubscribe = db.collection("posts").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+      renderPosts(snapshot);
+    }, error => {
+      console.error("Firestore error:", error);
+      postsContainer.innerHTML = `<div class="empty-message">⚠️ Firestore error: ${error.message}<br>Check your configuration and security rules.</div>`;
+    });
+  } else {
+    // fallback message
+    postsContainer.innerHTML = `<div class="empty-message">⚠️ Firebase not set up. Please add your firebaseConfig and enable Firestore.</div>`;
+  }
+
+  // add new idea
+  async function addIdea(text) {
+    if (!isFirebaseReady || !db) { alert("Firebase not configured. Please set up Firebase first."); return false; }
+    const trimmed = text.trim();
+    if (!trimmed) return false;
+    const finalText = trimmed.length > 2000 ? trimmed.slice(0,2000)+"…" : trimmed;
+    try {
+      await db.collection("posts").add({
+        text: finalText,
+        timestamp: Date.now(),
+        userId: currentUserId
+      });
+      return true;
+    } catch(err) {
+      console.error(err);
+      alert("failed to save idea: " + err.message);
+      return false;
+    }
+  }
+
+  // delete all posts by current user
+  async function deleteMyAllPosts() {
+    if (!isFirebaseReady || !db) { alert("Firebase not ready"); return; }
+    // query all posts where userId == currentUserId
+    const snapshot = await db.collection("posts").where("userId", "==", currentUserId).get();
+    if (snapshot.empty) {
+      alert("You have no ideas to delete.");
+      return;
+    }
+    const count = snapshot.size;
+    if (confirm(`⚠️ Delete all ${count} of your ideas? Others' posts will remain.`)) {
+      const batch = db.batch();
+      snapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+      alert(`Deleted ${count} of your ideas.`);
+    }
+  }
+
+  // event handlers
+  submitBtn?.addEventListener("click", async () => {
+    const val = ideaInput.value;
+    const ok = await addIdea(val);
+    if (ok) {
+      ideaInput.value = "";
+      const btn = submitBtn;
+      const orig = btn.innerText;
+      btn.innerText = "✓ planted!";
+      setTimeout(() => btn.innerText = orig, 800);
+    } else if (!val.trim()) {
+      alert("write something before planting.");
+    }
+  });
+
+  deleteMyAllBtn?.addEventListener("click", deleteMyAllPosts);
+
+  // Ctrl+Enter submit
+  ideaInput?.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      submitBtn.click();
+    }
+  });
+</script>
+</body>
+</html>
