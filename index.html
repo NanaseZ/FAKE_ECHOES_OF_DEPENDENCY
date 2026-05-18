@@ -291,18 +291,41 @@
     });
   }
 
-  // listen to realtime updates from Firestore (if configured)
-  let unsubscribe = null;
-  if (isFirebaseReady && db) {
-    unsubscribe = db.collection("posts").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+  // Load posts from Firestore
+  async function loadPosts() {
+    try {
+
+      const snapshot = await db
+        .collection("posts")
+        .orderBy("timestamp", "desc")
+        .get();
+
       renderPosts(snapshot);
-    }, error => {
+
+    } catch(error) {
+
       console.error("Firestore error:", error);
-      postsContainer.innerHTML = `<div class="empty-message">⚠️ Firestore error: ${error.message}<br>Check your configuration and security rules.</div>`;
-    });
+
+      postsContainer.innerHTML =
+        `<div class="empty-message">
+          ⚠️ Firestore error: ${error.message}
+        </div>`;
+    }
+  }
+
+  if (isFirebaseReady && db) {
+
+    loadPosts();
+
+    // refresh every 3 seconds
+    setInterval(loadPosts, 3000);
+
   } else {
-    // fallback message
-    postsContainer.innerHTML = `<div class="empty-message">⚠️ Firebase not set up. Please add your firebaseConfig and enable Firestore.</div>`;
+
+    postsContainer.innerHTML =
+      `<div class="empty-message">
+        ⚠️ Firebase not set up.
+      </div>`;
   }
 
   // add new idea
